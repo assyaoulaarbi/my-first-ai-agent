@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from openai import OpenAI
+import json
 
 # 1. Load API key
 load_dotenv()
@@ -37,4 +38,22 @@ response = client.responses.create(
     tools=tools
 )
 
-print(response.output)
+tool_call = response.output[0]
+
+arguments = json.loads(tool_call.arguments)
+
+weather_result = get_weather(arguments["location"])
+
+final_response = client.responses.create(
+    model="gpt-5.4-nano",
+    previous_response_id=response.id,
+    input=[
+        {
+            "type": "function_call_output",
+            "call_id": tool_call.call_id,
+            "output": weather_result
+        }
+    ]
+)
+
+print(final_response.output_text)
